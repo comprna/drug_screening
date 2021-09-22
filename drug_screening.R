@@ -28,29 +28,52 @@ library(plotly)
 library(bslib)
 library(shinythemes)
 
+# list of test to compute by shiny app
+test.vector = c("ZIP_synergy", "Bliss_synergy", "HSA_synergy", "Loewe_synergy")
+
 shinyApp(
     
-    ui = fluidPage(theme = shinytheme("simplex"), titlePanel("Drug Screening"),
+    ui = fluidPage(theme = shinytheme("simplex"), titlePanel(strong("Drug Screening")),
         sidebarLayout(
             sidebarPanel(
-                h2("Drug screening file"),
-                fileInput("upload","Choose a file to upload",buttonLabel = "Upload...",multiple = FALSE),
-                h2("Estimate IC50"),
-                selectInput("ic50", "IC50:", ""),
+                h2("Drug screening file:"),
+                fileInput("upload","Choose a file to upload (csv)",buttonLabel = "Upload...",multiple = FALSE),
+                h2("Estimate IC50:"),
+                selectInput("ic50", label = "",""),
                 helpText("Select plate"),
-                h2("Estimate Synergy"),
-                selectInput("synergy", "Synergy:",""),
-                helpText(" Select drug")
+                h2("Synergy analysis:"),
+                h3(em("Drug selection")),
+                selectInput("synergy", label = "",""),
+                helpText("Select drug"),
+                h3(em("Synergy model")),
+                selectInput("method", label = "",""),
+                helpText("Select synergy score method")
                 ),
             mainPanel(tabsetPanel(
                 #tableOutput("contents"),
-                tabPanel("IC50",plotOutput("ic50.plot",inline = TRUE),
+                tabPanel("IC50",br(),downloadButton(outputId = "download_plot1",label="Download plot"),br(),plotOutput("ic50.plot",inline = TRUE),
                         br(),
                         DT::dataTableOutput("ic50.table")),
-                tabPanel("Synergy",plotOutput("synergy.plot",inline = TRUE),
+                tabPanel("Synergy",br(),downloadButton(outputId = "download_plot2",label="Download plot"),br(),plotOutput("synergy.plot",inline = TRUE),
                         br(),
                         DT::dataTableOutput("synergy.table")),
                 tabPanel("Info",h2("Analysis description"),
+                         h3("Data format:"),
+                         p("Upload a CSV file with the following columns."),
+                         tags$ul(
+                             tags$li("Plate"),
+                             tags$li("Well ID"),
+                             tags$li("Well Row"),
+                             tags$li("Well Column"),
+                             tags$li("Compound"),
+                             tags$li("Concentration"),
+                             tags$li("Count of beads"),
+                             tags$li("% live cells"),
+                             tags$li("% dead cells"),
+                             tags$li("absolute count of live cells per well"),
+                             tags$li("absolute count of dead cells per well"),
+                             tags$li("Median CellTrace FR (RL1-A) of live cells")
+                         ),
                          h3("IC50 calculation:"),
                          p("Estimate IC50 for every drug by plate."),
                          tags$ul(
@@ -70,7 +93,7 @@ shinyApp(
                         ),
                         h4("Synergy plots:"),
                         p(strong("a:")," Heatmap form the dose response matrix, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the % of inhibition. Mean/Median indicate the mean/median percentage inhibition of all the possible combinations for the two drugs."),
-                        p(strong("b:")," Heatmap form the ZIP Synergy Score, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
+                        p(strong("b:")," Heatmap form the Synergy Score (chose by user), columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
                         p(strong("c:")," Summary barplots:"),
                         tags$ul(
                             tags$li("concentration drug 1."),
@@ -81,7 +104,7 @@ shinyApp(
                             tags$li("HSA score for every concentration drug combination."),
                             tags$li("Bliss score for every concentration drug combination.")
                         ),
-                        p(strong("d:"),"Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer.")
+                        p(strong("d:")," Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer.")
                          )
     )),fluid = TRUE)),
     
@@ -104,7 +127,7 @@ shinyApp(
         
 # IC50 plots   
         
-        output$ic50.plot = renderPlot({
+        plotInput = reactive({
             
                 exp = plate() %>% filter(stringr::str_detect(Plate,as.character(input$ic50)))
                 comp = unique(str_split_fixed(exp$Compound,"_",2)[,1])
@@ -154,16 +177,34 @@ shinyApp(
                         scale_y_continuous(name = "% Live Cells",sec.axis = sec_axis(~., name="Median Cell Trace / 10e5")) +
                         labs(x = paste("Drug Concentration log10(uM)",paste("IC50 ",round(10^mean(unlist(ic50.list)),digits = 4)," uM",sep=""),sep="\n")) +
                         geom_vline(xintercept = mean(unlist(ic50.list)),color="grey", 
-                                   linetype="solid") + annotate("text", x=0, y=80, label= paste("IC50 = ",round(mean(unlist(ic50.list)),digits = 2),sep="")) + ggtitle(comp[i]) + scale_color_futurama(name = "Replicates",labels = c("Replicate 1", "Replicate 2", "Replicate 3","Replicate 4")) + scale_linetype_manual(name="Cell data",labels=c("Median Cell Trace","% Live Cells"),values = rev(c("solid","longdash"))) + theme_minimal() + theme(legend.box = "vertical")
+                                   linetype="solid") + annotate("text", x=0, y=80, label= paste("IC50 = ",round(mean(unlist(ic50.list)),digits = 2),sep="")) + ggtitle(comp[i]) + scale_color_futurama(name = "Replicates",labels = c("Replicate 1", "Replicate 2", "Replicate 3","Replicate 4")) + scale_linetype_manual(name="Cell data",labels=c("Median Cell Trace","% Live Cells"),values = rev(c("solid","longdash"))) + theme_minimal() + theme(legend.box = "vertical",rect = element_rect(fill = "white"))
                     
                     list.p[[i]] = p
                     ic50.res[[i]] = mean(unlist(ic50.list))
                 }
                 list.plates = ggarrange(plotlist=list.p[2:length(comp)],legend = "bottom",common.legend = TRUE,ncol = 3,nrow=round(length(comp)/3))
                 ic50.plates = unlist(ic50.res)
-                grid.draw(list.plates)
+                p = list.plates
             
+        })
+        
+        output$ic50.plot <- renderPlot({
+            grid.draw(plotInput())
         }, height = 800,800)
+        
+        output$download_plot1 <- downloadHandler(
+            
+            filename = function() { paste0("plot_", Sys.Date(), ".png") },
+            
+            content = function(file) {
+                
+                device <- function(..., width, height) {
+                    grDevices::png(..., width = 4000, height = 4000, res = 300, units = "px")}
+                
+                ggsave(file, plot = plotInput(), device = device,bg="white")
+                
+                
+            })
         
 # IC50 data table
         
@@ -234,7 +275,7 @@ shinyApp(
 
 # Synergy plot
 
-        output$synergy.plot = renderPlot({
+        plotInput2 = reactive({
             con.pmr = c(0,3,6,9)
             syn.df = list()
             #tabledata = plate()
@@ -343,7 +384,7 @@ shinyApp(
                     data = res,
                     plot_block = 1,
                     drugs = c(1, 2),
-                    plot_value = "ZIP_synergy",
+                    plot_value = input$method,
                     dynamic = FALSE,
                     summary_statistic = c( "quantile_25", "quantile_75"),
                     text_label_size_scale = 2,
@@ -366,7 +407,7 @@ shinyApp(
                     data = res,
                     plot_block = 1,
                     drugs = c(1, 2),
-                    plot_value = "ZIP_synergy",
+                    plot_value = input$method,
                     dynamic = FALSE,
                     summary_statistic = c("quantile_25", "quantile_75"),
                     high_value_color = "#FF0000",
@@ -422,8 +463,26 @@ shinyApp(
                 names(lst.syn) = c("ht.1","ht.2","cp.1","cp.2","sp.1","sp.2","bar.1","dr.bar")
                 m.syn.zip = lst.syn
             
-            ggarrange(plotlist = m.syn.zip[c(1, 2, 8, 7)],ncol=1,labels="auto")
+            gga = m.syn.zip[c(1, 2, 8, 7)]
+        })
+        
+        output$synergy.plot <- renderPlot({
+            ggarrange(plotlist = plotInput2(),ncol=1, labels="auto")
         }, height = 1000,700)
+        
+        output$download_plot2 <- downloadHandler(
+            
+            filename = function() { paste0("plot_", Sys.Date(), ".png") },
+            
+            content = function(file) {
+                
+                device <- function(..., width, height) {
+                    grDevices::png(..., width = 2500, height = 4000, res = 300, units = "px")}
+                
+                ggsave(file, plot = ggarrange(plotlist = plotInput2(),ncol=1, labels="auto"), device = device,bg="white")
+                
+                
+            })
         
 # synergy data table
         
@@ -552,7 +611,12 @@ shinyApp(
             updateSelectInput(session,"synergy",
                               label = "synergy",
                               choices= unique(str_split_fixed(plate()$Compound,"_",2)[,1])[2:length(unique(str_split_fixed(plate()$Compound,"_",2)[,1]))],
-                              selected = unique(str_split_fixed(plate()$Compound,"_",2)[,1])[2:length(unique(str_split_fixed(plate()$Compound,"_",2)[,1]))][1])})
+                              selected = unique(str_split_fixed(plate()$Compound,"_",2)[,1])[2:length(unique(str_split_fixed(plate()$Compound,"_",2)[,1]))][1])
+            updateSelectInput(session,"method",
+                            label = "method",
+                            choices= test.vector,
+                            selected = test.vector[1])})
+
     },
     
     options = list(height = 1000, width = 1000)
