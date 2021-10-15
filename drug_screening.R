@@ -33,7 +33,7 @@ test.vector = c("ZIP_synergy", "Bliss_synergy", "HSA_synergy", "Loewe_synergy")
 
 shinyApp(
     
-    ui = fluidPage(theme = shinytheme("simplex"), titlePanel(strong("Drug Screening")),
+    ui = fluidPage(theme = shinytheme("sandstone"), navbarPage(strong("DRUG SCREENING"),tabPanel("Analysis",
         sidebarLayout(
             sidebarPanel(
                 h2("Drug screening file:"),
@@ -51,12 +51,6 @@ shinyApp(
                 ),
             mainPanel(tabsetPanel(
                 #tableOutput("contents"),
-                tabPanel("IC50",br(),downloadButton(outputId = "download_plot1",label="Download plot"),br(),plotOutput("ic50.plot",inline = TRUE),
-                        br(),
-                        DT::dataTableOutput("ic50.table")),
-                tabPanel("Synergy",br(),downloadButton(outputId = "download_plot2",label="Download plot"),br(),plotOutput("synergy.plot",inline = TRUE),
-                        br(),
-                        DT::dataTableOutput("synergy.table")),
                 tabPanel("Info",h2("Analysis description"),
                          h3("Data format:"),
                          p("Upload a CSV file with the following columns."),
@@ -74,39 +68,50 @@ shinyApp(
                              tags$li("absolute count of dead cells per well"),
                              tags$li("Median CellTrace FR (RL1-A) of live cells")
                          ),
+                         hr(),
                          h3("IC50 calculation:"),
                          p("Estimate IC50 for every drug by plate."),
                          tags$ul(
                              tags$li("% Live Cells"),
                              tags$li("Median Cell trace/10e5")),
-                        p("Summary table with the IC50 calculated by drug on uM units."),
-                        p("Drugs evaluated are on the rows, plates are on the columns."),
-                        h3("Synergy Analysis:"),
-                        p("Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng et al. from Reserach Program in system Oncology, Faculty of Medicine, University of Helsinki."),
-                        p(a("SynergyFinder",href="https://www.bioconductor.org/packages/release/bioc/html/synergyfinder.html")),
-                        p("4 synergy scoring are computed."),
-                        tags$ul(
-                            tags$li(strong("Highest Single Agent (HSA):"), " states that the expected combination effect equals to the higher effect of individual drugs."),
-                            tags$li(strong("Bliss model (Bliss):"), " assumes a stochastic process in which two drugs exert their effects independently, and the expected combination effect can be calculated based on the probability of independent events."),
-                            tags$li(strong("Loewe additivity model (Loewe):"), " is based on the assumption that no compound interacts with itself and that two doses from different compounds having the same effect are equivalent."),
-                            tags$li(strong("Zero Interaction Potency (ZIP):"), " calculates the expected effect of two drugs under the assumption that they do not potentiate each other, i.e. both the assumptions of the Loewe model and the Bliss model are met.")
-                        ),
-                        h4("Synergy plots:"),
-                        p(strong("a:")," Heatmap form the dose response matrix, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the % of inhibition. Mean/Median indicate the mean/median percentage inhibition of all the possible combinations for the two drugs."),
-                        p(strong("b:")," Heatmap form the Synergy Score (chose by user), columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
-                        p(strong("c:")," Summary barplots:"),
-                        tags$ul(
-                            tags$li("concentration drug 1."),
-                            tags$li("concentration drug 2."),
-                            tags$li("% of inhibition."),
-                            tags$li("ZIP score for every concentration drug combination."),
-                            tags$li("Loewe score for every concentration drug combination."),
-                            tags$li("HSA score for every concentration drug combination."),
-                            tags$li("Bliss score for every concentration drug combination.")
-                        ),
-                        p(strong("d:")," Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer.")
-                         )
-    )),fluid = TRUE)),
+                         p("Summary table with the IC50 calculated by drug on uM units."),
+                         p("Drugs evaluated are on the rows, plates are on the columns."),
+                         hr(),
+                         h3("Synergy Analysis:"),
+                         p(style="text-align: justify;","Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng et al. from Reserach Program in system Oncology, Faculty of Medicine, University of Helsinki."),
+                         p(a("SynergyFinder",href="https://www.bioconductor.org/packages/release/bioc/html/synergyfinder.html")),
+                         p("4 synergy scoring are computed."),
+                         tags$ul(
+                             tags$li(style="text-align: justify;",strong("Highest Single Agent (HSA):"), " states that the expected combination effect equals to the higher effect of individual drugs."),
+                             tags$li(style="text-align: justify;",strong("Bliss model (Bliss):"), " assumes a stochastic process in which two drugs exert their effects independently, and the expected combination effect can be calculated based on the probability of independent events."),
+                             tags$li(style="text-align: justify;",strong("Loewe additivity model (Loewe):"), " is based on the assumption that no compound interacts with itself and that two doses from different compounds having the same effect are equivalent."),
+                             tags$li(style="text-align: justify;",strong("Zero Interaction Potency (ZIP):"), " calculates the expected effect of two drugs under the assumption that they do not potentiate each other, i.e. both the assumptions of the Loewe model and the Bliss model are met.")
+                         ),
+                         h4("Synergy plots:"),
+                         p(style="text-align: justify;",strong("a:")," Heatmap form the dose response matrix, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the % of inhibition. Mean/Median indicate the mean/median percentage inhibition of all the possible combinations for the two drugs."),
+                         p(style="text-align: justify;",strong("b:")," Heatmap form the Synergy Score (chose by user), columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
+                         p(style="text-align: justify;",strong("c:")," Summary barplots:"),
+                         tags$ul(
+                             tags$li("concentration drug 1."),
+                             tags$li("concentration drug 2."),
+                             tags$li("% of inhibition."),
+                             tags$li("ZIP score for every concentration drug combination."),
+                             tags$li("Loewe score for every concentration drug combination."),
+                             tags$li("HSA score for every concentration drug combination."),
+                             tags$li("Bliss score for every concentration drug combination.")
+                         ),
+                         p(style="text-align: justify;",strong("d:")," Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer."),
+                         hr(),
+                         p(em("Contact : adria.closamosquera@anu.edu.au"))
+                ),
+                tabPanel("IC50",br(),downloadButton(outputId = "download_plot1",label="Download plot"),br(),plotOutput("ic50.plot",inline = TRUE),
+                        br(),
+                        DT::dataTableOutput("ic50.table")),
+                tabPanel("Synergy",br(),downloadButton(outputId = "download_plot2",label="Download plot"),br(),plotOutput("synergy.plot",inline = TRUE),
+                        br(),
+                        DT::dataTableOutput("synergy.table"))
+                
+    )),fluid = TRUE)))),
     
     server = function(input, output,session) {
 # reactive data table 
