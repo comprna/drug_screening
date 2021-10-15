@@ -16,7 +16,7 @@ Input file format (csv) whith the following columns:
 * Concentration
 * Count of beads
 * % live cells
-* % dead ce;;s
+* % dead cells
 * absolute count of live cells per well
 * absoute count of dead cells per well
 * Median CellTrace FR (RL1-A) of lice cells
