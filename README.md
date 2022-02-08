@@ -6,27 +6,37 @@ Shiny app for drug screening analysis comparing one drug to a baterry of drugs.
 
 A input file with results from drug screening platform is needed to run the app.
 
-Input file format (csv) whith the following columns:
+Upload a CSV file with the following columns for the plate reference file.
 
 * Plate
+* Well ID
+* Well Row
+* Well Column
+* Well Type
+* Compound
+* Concentration
+
+Input file format (csv) whith the following columns:
+
+* Plate ID
 * Well ID
 * Well Row
 * Well Column
 * Compound
 * Concentration
 * Count of beads
-* % live cells
-* % dead cells
+* % Live cells
+* % Dead cells
 * absolute count of live cells per well
 * absoute count of dead cells per well
-* Median CellTrace FR (RL1-A) of lice cells
+* Median CellTrace FR-A (RL1-A) of Live cells
 
 ## IC50 calculation:
 
 Estimate IC50 for every drug by plate.
 
 * % Live Cells
-* Median Cell trace/10e5
+* % Increment Median Cell Trace ((Median cell trace / mean(Median cell trace control))-1)*100
 
 Summary table with the IC50 calculated by drug on uM units.
 Drugs evaluated are on the rows, plates are on the columns.
@@ -36,6 +46,12 @@ Drugs evaluated are on the rows, plates are on the columns.
 Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng et al. from Reserach Program in system Oncology, Faculty of Medicine, University of Helsinki.
 
 [SynergyFinder](https://www.bioconductor.org/packages/release/bioc/html/synergyfinder.html)
+
+Response
+User can choose between two type of observations on the synergy response:
+
+* __viability:__ use % Live cells as a response.
+* __inhibition:__ use % Increment Median Cell Trace as a response.
 
 4 synergy scoring are computed.
 
@@ -57,3 +73,9 @@ Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng e
   + HSA score for every concentration drug combination.
   + Bliss score for every concentration drug combination.
 * __d:__ Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer.
+
+Summary table with the Synergy scores by every drug concentration
+
+## Contact:
+
+*adria.closamosquera@anu.edu.au*
