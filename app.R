@@ -27,6 +27,8 @@ library(sjPlot)
 library(plotly)
 library(bslib)
 library(shinythemes)
+library(colourpicker)
+library(shinycssloaders)
 
 # list of test to compute by shiny app
 test.vector = c("ZIP_synergy", "Bliss_synergy", "HSA_synergy", "Loewe_synergy")
@@ -57,89 +59,103 @@ shinyApp(
                 ),
             mainPanel(tabsetPanel(
                 #tableOutput("contents"),
-                tabPanel("Info",h2("Analysis description"),
-                         h3("Data format:"),
-                         p("Upload a CSV file with the following columns for the plate reference file."),
-                         tags$ul(
-                             tags$li("Plate"),
-                             tags$li("Well ID"),
-                             tags$li("Well Row"),
-                             tags$li("Well Column"),
-                             tags$li("Well Type"),
-                             tags$li("Compound"),
-                             tags$li("Concentration")
-                         ),
-                         p("Upload a CSV file with the following columns for the drug and vehicle plate."),
-                         tags$ul(
-                             tags$li("Plate ID"),
-                             tags$li("Well ID"),
-                             tags$li("Well Row"),
-                             tags$li("Well Column"),
-                             tags$li("Compound"),
-                             tags$li("Concentration"),
-                             tags$li("Count of beads"),
-                             tags$li("% Live cells"),
-                             tags$li("% Dead cells"),
-                             tags$li("absolute count of live cells per well"),
-                             tags$li("absolute count of dead cells per well"),
-                             tags$li("Median CellTrace FR-A (RL1-A) of Live cells")
-                         ),
-                         hr(),
-                         h3("IC50 calculation:"),
-                         p("Estimate IC50 for every drug by plate."),
-                         tags$ul(
-                             tags$li("% Live Cells"),
-                             tags$li("% Increment Median Cell Trace [((Median cell trace / mean(Median cell trace control))-1)*100]")),
-                         p("Summary table with the IC50 calculated by drug on uM units."),
-                         p("Drugs evaluated are on the rows, plates are on the columns."),
-                         hr(),
-                         h3("Synergy Analysis:"),
-                         p(style="text-align: justify;","Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng et al. from Reserach Program in system Oncology, Faculty of Medicine, University of Helsinki."),
-                         p(a("SynergyFinder",href="https://www.bioconductor.org/packages/release/bioc/html/synergyfinder.html")),
-                         h4("Response"),
-                         p("User can choose between two type of observations on the synergy response:"),
-                         tags$ul(
-                             tags$li(style="text-align: justify;",strong("viability:"), " use % Live cells as a response."),
-                             tags$li(style="text-align: justify;",strong("inhibition:"), " use % Increment Median Cell Trace as a response."),
-                         ),
-                         p("4 synergy scoring are computed."),
-                         tags$ul(
-                             tags$li(style="text-align: justify;",strong("Highest Single Agent (HSA):"), " states that the expected combination effect equals to the higher effect of individual drugs."),
-                             tags$li(style="text-align: justify;",strong("Bliss model (Bliss):"), " assumes a stochastic process in which two drugs exert their effects independently, and the expected combination effect can be calculated based on the probability of independent events."),
-                             tags$li(style="text-align: justify;",strong("Loewe additivity model (Loewe):"), " is based on the assumption that no compound interacts with itself and that two doses from different compounds having the same effect are equivalent."),
-                             tags$li(style="text-align: justify;",strong("Zero Interaction Potency (ZIP):"), " calculates the expected effect of two drugs under the assumption that they do not potentiate each other, i.e. both the assumptions of the Loewe model and the Bliss model are met.")
-                         ),
-                         h4("Synergy plots:"),
-                         p(style="text-align: justify;",strong("a:")," Heatmap form the dose response matrix, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the % of inhibition. Mean/Median indicate the mean/median percentage inhibition of all the possible combinations for the two drugs."),
-                         p(style="text-align: justify;",strong("b:")," Heatmap form the Synergy Score (chose by user), columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
-                         p(style="text-align: justify;",strong("c:")," Summary barplots:"),
-                         tags$ul(
-                             tags$li("concentration drug 1."),
-                             tags$li("concentration drug 2."),
-                             tags$li("% of inhibition."),
-                             tags$li("ZIP score for every concentration drug combination."),
-                             tags$li("Loewe score for every concentration drug combination."),
-                             tags$li("HSA score for every concentration drug combination."),
-                             tags$li("Bliss score for every concentration drug combination.")
-                         ),
-                         p(style="text-align: justify;",strong("d:")," Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer."),
-                         p("Summary table with the Synergy scores by every drug concentration"),
-                         hr(),
-                         p(em("Contact : adria.closamosquera@anu.edu.au"))
-                ),
+                
                 tabPanel("IC50",
                         br(),div(style="display: inline-block;vertical-align:top;",selectInput("drug", label = "Select Drug","")),
                         div(style="display: inline-block;vertical-align:top; width: 100px;",HTML("<br>")),
                         div(style="display: inline-block;vertical-align:top; width: 150px; margin-top: 10px;",downloadButton(outputId = "download_plot1",label="Download plot")),
-                        br(),plotOutput("ic50.plot",inline = TRUE),
+                        br(),shinycssloaders::withSpinner(plotOutput("ic50.plot",inline = TRUE),type = 5),colourInput("col1","Select colour Drug","orange"),colourInput("col2","Select colour Vehicle","grey"),
                         br(),
                         DT::dataTableOutput("ic50.table")),
-                tabPanel("Synergy",br(),downloadButton(outputId = "download_plot2",label="Download plot"),br(),plotOutput("synergy.plot",inline = TRUE),
+                tabPanel("Synergy",br(),downloadButton(outputId = "download_plot2",label="Download plot"),br(),shinycssloaders::withSpinner(plotOutput("synergy.plot",inline = TRUE),type = 5),
+                         colourInput("col3","High response value color","#FF0000"),colourInput("col4","Low response value color","#0037ff"),
                         br(),
                         DT::dataTableOutput("synergy.table")),
                 tabPanel("Synergy table",br(),DT::dataTableOutput("synergy.table.all"))
                 
-    )),fluid = TRUE)))),
+    )),fluid = TRUE)),tabPanel("User guide",
+                               mainPanel(
+                                   #tableOutput("contents"),
+                                   tabPanel("Info",h2("Analysis description"),
+                                            h3("Data format:"),
+                                            p("Upload a CSV file with the following columns for the plate reference file."),
+                                            tags$ul(
+                                                tags$li("Plate"),
+                                                tags$li("Well ID"),
+                                                tags$li("Well Row"),
+                                                tags$li("Well Column"),
+                                                tags$li("Well Type"),
+                                                tags$li("Compound"),
+                                                tags$li("Concentration")
+                                            ),
+                                            p("Upload a CSV file with the following columns for the drug and vehicle plate."),
+                                            tags$ul(
+                                                tags$li("Plate ID"),
+                                                tags$li("Well ID"),
+                                                tags$li("Well Type"),
+                                                tags$li("Compound"),
+                                                tags$li("Concentration"),
+                                                tags$li("Count of Counting beads"),
+                                                tags$li("Count of Live cells"),
+                                                tags$li("Count of Dead cells"),
+                                                tags$li("% Live cells"),
+                                                tags$li("% Dead cells"),
+                                                tags$li("Number of live cells per well"),
+                                                tags$li("Number of dead cells per well"),
+                                                tags$li("Median CellTrace FR-A (RL1-A) of Live cells")
+                                            ),
+                                            hr(),
+                                            h3("IC50 calculation:"),
+                                            p("Estimate IC50 for every drug by plate."),
+                                            tags$ul(
+                                                tags$li("% Live Cells"),
+                                                tags$li("% Increment Median Cell Trace [((Median cell trace / mean(Median cell trace control))-1)*100]")),
+                                            p("Summary table with the IC50 calculated by drug on uM units."),
+                                            p("Drugs evaluated are on the rows, plates are on the columns."),
+                                            hr(),
+                                            h3("Synergy Analysis:"),
+                                            p(style="text-align: justify;","Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng et al. from Reserach Program in system Oncology, Faculty of Medicine, University of Helsinki."),
+                                            p(a("SynergyFinder",href="https://www.bioconductor.org/packages/release/bioc/html/synergyfinder.html")),
+                                            h4("Response"),
+                                            p("User can choose between two type of observations on the synergy response:"),
+                                            tags$ul(
+                                                tags$li(style="text-align: justify;",strong("viability:"), " use % Live cells as a response."),
+                                                tags$li(style="text-align: justify;",strong("inhibition:"), " use % Increment Median Cell Trace as a response."),
+                                            ),
+                                            p("4 synergy scoring are computed."),
+                                            tags$ul(
+                                                tags$li(style="text-align: justify;",strong("Highest Single Agent (HSA):"), " states that the expected combination effect equals to the higher effect of individual drugs."),
+                                                tags$li(style="text-align: justify;",strong("Bliss model (Bliss):"), " assumes a stochastic process in which two drugs exert their effects independently, and the expected combination effect can be calculated based on the probability of independent events."),
+                                                tags$li(style="text-align: justify;",strong("Loewe additivity model (Loewe):"), " is based on the assumption that no compound interacts with itself and that two doses from different compounds having the same effect are equivalent."),
+                                                tags$li(style="text-align: justify;",strong("Zero Interaction Potency (ZIP):"), " calculates the expected effect of two drugs under the assumption that they do not potentiate each other, i.e. both the assumptions of the Loewe model and the Bliss model are met.")
+                                            ),
+                                            h4("Synergy plots:"),
+                                            p(style="text-align: justify;",strong("a:")," Heatmap form the dose response matrix, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the % of inhibition. Mean/Median indicate the mean/median percentage inhibition of all the possible combinations for the two drugs."),
+                                            p(style="text-align: justify;",strong("b:")," Heatmap form the Synergy Score (chose by user), columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
+                                            p(style="text-align: justify;",strong("c:")," Summary barplots:"),
+                                            tags$ul(
+                                                tags$li("concentration drug 1."),
+                                                tags$li("concentration drug 2."),
+                                                tags$li("% of inhibition."),
+                                                tags$li("ZIP score for every concentration drug combination."),
+                                                tags$li("Loewe score for every concentration drug combination."),
+                                                tags$li("HSA score for every concentration drug combination."),
+                                                tags$li("Bliss score for every concentration drug combination.")
+                                            ),
+                                            p(style="text-align: justify;",strong("d:")," Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer."),
+                                            p("Summary table with the Synergy scores by every drug concentration"),
+                                            hr()
+                                   ))
+                                   ),
+    tabPanel("Contact",mainPanel(p(h5(strong("Genome Sciences and Cancer Division")),
+                                 h6("The John Curtin School of Medical Research"),
+                                 h6("131 Garran Road"),
+                                 h6("The Australian NAtional University"),
+                                 h6("Acton ACT 2601")),
+                                 hr(),
+                                 p(em("Contact : adria.closamosquera@anu.edu.au")),
+                                 p(a("GitHub Drug Screening",href="https://github.com/comprna/drug_screening"))
+                                 )))),
 
 # Define server -------
 
@@ -296,7 +312,7 @@ shinyApp(
                         labs(x = paste("Drug Concentration log10(uM)",paste("IC50 ",round(10^mean(unlist(ic50.list)),digits = 4)," uM",sep=""),sep="\n")) +
                         geom_vline(xintercept = mean(unlist(ic50.list)),color="grey", linetype="solid") + 
                         annotate("text", x=-4, y=80, label= paste("IC50 = ",round(mean(unlist(ic50.list)),digits = 2),sep="")) + ggtitle(paste("Drug ",unique(sub.exp$Compound.y),sep="")) + 
-                        scale_color_futurama(name = "Replicates",labels = c("Replicate 1", "Replicate 2", "Replicate 3","Replicate 4")) + 
+                        scale_color_manual(name = "Compound",values=input$col1) + 
                         scale_linetype_manual(name="Cell data",labels=c("% Increment Median Cell Trace","% Live Cells"),values = rev(c("solid","longdash"))) + theme_minimal() + 
                         theme(legend.box = "vertical",rect = element_rect(fill = "white"))
                     
@@ -309,7 +325,7 @@ shinyApp(
                         labs(x = paste("Drug Concentration log10(uM)",paste("IC50 ",round(10^mean(unlist(ic50.list2)),digits = 4)," uM",sep=""),sep="\n")) +
                         geom_vline(xintercept = mean(unlist(ic50.list2)),color="grey", linetype="solid") + 
                         annotate("text", x=-4, y=80, label= paste("IC50 = ",round(mean(unlist(ic50.list2)),digits = 2),sep="")) + ggtitle(paste("Veh ",unique(sub.exp2$Compound.y),sep="")) + 
-                        scale_color_futurama(name = "Replicates",labels = c("Replicate 1", "Replicate 2", "Replicate 3","Replicate 4")) + 
+                        scale_color_manual(name = "Compound",values=input$col2) + 
                         scale_linetype_manual(name="Cell data",labels=c("% Increment Median Cell Trace","% Live Cells"),values = rev(c("solid","longdash"))) + theme_minimal() + 
                         theme(legend.box = "vertical",rect = element_rect(fill = "white"))
                     p3 = ggarrange(p,p2,legend="bottom", common.legend = TRUE,ncol=2)
@@ -638,8 +654,8 @@ shinyApp(
                     dynamic = FALSE,
                     summary_statistic = c("mean",  "median"),
                     text_label_size_scale = 2,
-                    high_value_color = "#FF0000",
-                    low_value_color = "#0037ff"
+                    high_value_color = input$col3,
+                    low_value_color = input$col4
                 )
                 
                 ht.2 = Plot2DrugHeatmap(
@@ -650,8 +666,8 @@ shinyApp(
                     dynamic = FALSE,
                     summary_statistic = c( "quantile_25", "quantile_75"),
                     text_label_size_scale = 2,
-                    high_value_color = "#FF0000",
-                    low_value_color = "#0037ff"
+                    high_value_color = input$col3,
+                    low_value_color = input$col4
                 )
                 
                 # 2D Contour plot
@@ -662,8 +678,8 @@ shinyApp(
                     plot_value = "response",
                     dynamic = FALSE,
                     summary_statistic = c("mean", "median"),
-                    high_value_color = "#FF0000",
-                    low_value_color = "#0037ff"
+                    high_value_color = input$col3,
+                    low_value_color = input$col4
                 )
                 cp.2 = Plot2DrugContour(
                     data = res,
@@ -672,8 +688,8 @@ shinyApp(
                     plot_value = input$method,
                     dynamic = FALSE,
                     summary_statistic = c("quantile_25", "quantile_75"),
-                    high_value_color = "#FF0000",
-                    low_value_color = "#0037ff"
+                    high_value_color = input$col3,
+                    low_value_color = input$col4
                 )
                 
                 # 3D surface plot
@@ -684,8 +700,8 @@ shinyApp(
                     plot_value = "response",
                     dynamic = TRUE,
                     summary_statistic = c("mean", "quantile_25", "median", "quantile_75"),
-                    high_value_color = "#FF0000",
-                    low_value_color = "#0037ff"
+                    high_value_color = input$col3,
+                    low_value_color = input$col4
                 )
                 sp.2 = Plot2DrugSurface(
                     data = res,
@@ -694,8 +710,8 @@ shinyApp(
                     plot_value = "ZIP_synergy",
                     dynamic = TRUE,
                     summary_statistic = c("mean", "quantile_25", "median", "quantile_75"),
-                    high_value_color = "#FF0000",
-                    low_value_color = "#0037ff"
+                    high_value_color = input$col3,
+                    low_value_color = input$col4
                 )
                 
                 con1 = filter(res$synergy_scores,(res$synergy_scores$ZIP_synergy == max(res$synergy_scores$ZIP_synergy)))$conc1[1]
