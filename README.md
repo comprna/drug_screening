@@ -74,7 +74,11 @@ User can choose between two type of observations on the synergy response:
   + Bliss score for every concentration drug combination.
 * __d:__ Barometer plot, barometer for given concentration combination (max ZIP synergy score by concentration 1 and 2) in a matrix. The needle of the barometer points to the observed response value. The expected responses from different models are marked as the ticks on the color bar. The observed response and the concentration of the combined drugs are tested at the center of the barometer.
 
-Summary table with the Synergy scores by every drug concentration
+### Synergy summary:
+
+Summary table with the Synergy scores by every drug concentration.
+
+Summary heatmap with the Synergy scores by every drug concentration (you can chose how many drugs do you want to plot on the heatmap).
 
 ## Contact:
 
