@@ -1,6 +1,6 @@
 # Drug Screening App
 
-Shiny app for drug screening analysis comparing one drug to a baterry of drugs.
+Shiny app for drug screening analysis comparing one drug to a battery of drugs.
 
 ## Input file:
 
