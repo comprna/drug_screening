@@ -45,9 +45,18 @@ shinyApp(
         sidebarLayout(
             sidebarPanel(
                 h2("Drug screening file:"),
+                
                 fileInput("names.drugs","Choose a plate reference file to upload (csv)",buttonLabel = "Upload...",multiple = FALSE),
                 fileInput("upload","Choose a drug file to upload (csv)",buttonLabel = "Upload...",multiple = FALSE),
                 fileInput("upload2","Choose a vehicle file to upload (csv)",buttonLabel = "Upload...",multiple = FALSE),
+                
+                splitLayout(cellWidths = c("60%", "30%"),
+                            textInput("drug.name",label="Drug Name",value=""),
+                            #helpText("Write drug name tested"),
+                            numericInput("drug.con",label="Conc. (uM)",value = ""),
+                            #helpText("Write concentration from drug tested (uM)")
+                ),
+                
                 #actionButton("submit","Submit"),
                 h2("Estimate IC50:"),
                 #selectInput("ic50", label = "",""),
@@ -90,6 +99,8 @@ shinyApp(
                          #pickerInput("ht.drugs",label = "",choices ="",options = list(`actions-box` = TRUE),multiple=T),
                          uiOutput("picker"),
                          br(),
+                         sliderInput("threshold",label = "Synergy threshold",min = -100,max=100,value = -100),
+                         br(),
                          downloadButton(outputId = "download_plot3",label="Download .SVG"),
                          br(),
                          shinycssloaders::withSpinner(plotOutput("synergy.heatmap",inline = TRUE),type = 5),
@@ -99,6 +110,9 @@ shinyApp(
                                mainPanel(
                                    #tableOutput("contents"),
                                    tabPanel("Info",h2("Analysis description"),
+                                            p("The experimental design of this drug screening analysis is base on the idea of comparing whats the synergy of one experimental drug againts a battery of multiple drugs."),
+                                            p("You will need 3 different files one for the reference of the drugs used and two with the tested drugs one as a drug plate and another as a vehicle plate."),
+                                            p("The experiments has to be perform on a 384 standar plates."),
                                             h3("Data format:"),
                                             p("Upload a CSV file with the following columns for the plate reference file."),
                                             tags$ul(
@@ -126,6 +140,11 @@ shinyApp(
                                                 tags$li("Number of dead cells per well"),
                                                 tags$li("Median CellTrace FR-A (RL1-A) of Live cells")
                                             ),
+                                            p("Provide the drug name of the tested drug to compare with the screening series drugs and concentration"),
+                                            tags$ul(
+                                              tags$li("Drug tested name"),
+                                              tags$li("Concentration of the tested drug (uM)")
+                                            ),
                                             hr(),
                                             h3("IC50 calculation:"),
                                             p("Estimate IC50 for every drug."),
@@ -138,7 +157,7 @@ shinyApp(
                                             h3("Synergy Analysis:"),
                                             p(style="text-align: justify;","Synergy analysis based on the SynergyFinder Plus package in R from Shuyu Zheng et al. from Reserach Program in system Oncology, Faculty of Medicine, University of Helsinki."),
                                             p(a("SynergyFinder",href="https://www.bioconductor.org/packages/release/bioc/html/synergyfinder.html")),
-                                            h4("Response"),
+                                            h4("Response."),
                                             p("User can choose between two type of observations on the synergy response:"),
                                             tags$ul(
                                                 tags$li(style="text-align: justify;",strong("viability:"), " use % Live cells as a response."),
@@ -151,7 +170,7 @@ shinyApp(
                                                 tags$li(style="text-align: justify;",strong("Loewe additivity model (Loewe):"), " is based on the assumption that no compound interacts with itself and that two doses from different compounds having the same effect are equivalent."),
                                                 tags$li(style="text-align: justify;",strong("Zero Interaction Potency (ZIP):"), " calculates the expected effect of two drugs under the assumption that they do not potentiate each other, i.e. both the assumptions of the Loewe model and the Bliss model are met.")
                                             ),
-                                            h4("Synergy plots:"),
+                                            h4("Synergy plots."),
                                             p(style="text-align: justify;",strong("a:")," Heatmap form the dose response matrix, columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the % of inhibition. Mean/Median indicate the mean/median percentage inhibition of all the possible combinations for the two drugs."),
                                             p(style="text-align: justify;",strong("b:")," Heatmap form the Synergy Score (chose by user), columns are the concentration of the drug 1, rows the concentration of the drug 2. Numbers inside indicate the Synergy score."),
                                             p(style="text-align: justify;",strong("c:")," Summary barplots:"),
@@ -169,10 +188,12 @@ shinyApp(
                                               points to the observed response value. The expected responses from different models are marked as the 
                                               ticks on the color bar. The observed response and the concentration of the combined drugs are tested 
                                               at the center of the barometer."),
-                                            h4("Synergy summary"),
+                                            h4("Synergy summary."),
                                             p("Summary table with the Synergy scores by every drug concentration."),
-                                            p("Summary heatmapwith the Synergy scores by every drug concentration (you can chose how many drugs 
+                                            p("Summary heatmap with the Synergy scores by every drug concentration (you can chose how many drugs 
                                               do you want to plot on the heatmap)."),
+                                            p("The concentration and synergy scores ploted by drug is the one that have the highest mean score from all synergy scores by concentration."),
+                                            p("A threshold of the synergy score can be applied using the slider bar."),
                                             hr()
                                    ))
                                    ),
@@ -580,7 +601,8 @@ shinyApp(
                 if (input$response == "viability"){
                 list.comp.a = list()
                 for(i in 2:length(comp)){
-                    comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                    #comp.a = s.exp[grep(paste("^",comp[i],"$",sep=""),s.exp$Compound.y,fixed = FALSE),]
+                    comp.a = s.exp[s.exp$Compound.y %in% comp[i],]
                     comp.base.drug = s.exp[grep("Drug",s.exp$Plate.ID),]
                     comp.base.drug = comp.base.drug[comp.base.drug$Well.Type.x == "Negative",]
                     mean.drug = mean(comp.base.drug$X..Live.cells)
@@ -599,8 +621,8 @@ shinyApp(
                     #comp.a = rbind(comp.a,comp.null)
                     #mean.comp.a = comp.a %>% group_by(Concentration) %>% summarize(var3.mean = mean(X..live.cells))
                     #list.comp.a[[i]] = as.data.frame(mean.comp.a)[,2]
-                    comp.a$Compound.z = "PMR-116"
-                    comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+                    comp.a$Compound.z = input$drug.name
+                    comp.a$Concentration.z = c(rep(input$drug.con,c(dim(comp.a)[1]-2)/2),rep(0,c(dim(comp.a)[1]-2)/2),input$drug.con,0)
                     gg = data.frame(block_id = 1, drug_col = comp.a$Compound.z, drug_row = comp.a$Compound.y,conc_c = comp.a$Concentration.z, conc_r = comp.a$Concentration.y, response = comp.a$X..Live.cells, conc_r_unit = "uM",conc_c_unit = "uM")
                     gg[is.na(gg)] = 0
                     gg$drug_row <- sub("^$", unique(gg$drug_row)[1], gg$drug_row)
@@ -610,7 +632,8 @@ shinyApp(
                     
                     list.comp.a = list()
                     for(i in 2:length(comp)){
-                        comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                        #comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                        comp.a = s.exp[s.exp$Compound.y %in% comp[i],]
                         comp.base.drug = s.exp[grep("Drug",s.exp$Plate.ID),]
                         comp.base.drug = comp.base.drug[comp.base.drug$Well.Type.x == "Negative",]
                         mean.drug = mean(comp.base.drug$X..Live.cells)
@@ -633,8 +656,10 @@ shinyApp(
                         #comp.a = rbind(comp.a,comp.null)
                         #mean.comp.a = comp.a %>% group_by(Concentration) %>% summarize(var3.mean = mean(X..live.cells))
                         #list.comp.a[[i]] = as.data.frame(mean.comp.a)[,2]
-                        comp.a$Compound.z = "PMR-116"
-                        comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+                        #comp.a$Compound.z = "PMR-116"
+                        #comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+                        comp.a$Compound.z = input$drug.name
+                        comp.a$Concentration.z = c(rep(input$drug.con,c(dim(comp.a)[1]-2)/2),rep(0,c(dim(comp.a)[1]-2)/2),input$drug.con,0)
                         comp.a$X..CTFR = (c(c(comp.a[grep("Drug",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1])[-length(c(comp.a[grep("Drug",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1]))],
                                            c(comp.a[grep("Veh",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1])[-length(c(comp.a[grep("Veh",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[2]))],1,1)-1)*100
                         gg = data.frame(block_id = 1, drug_col = comp.a$Compound.z, drug_row = comp.a$Compound.y,conc_c = comp.a$Concentration.z, conc_r = comp.a$Concentration.y, response = comp.a$X..CTFR, conc_r_unit = "uM",conc_c_unit = "uM")
@@ -851,7 +876,8 @@ shinyApp(
             if (input$response == "viability"){
                 list.comp.a = list()
                 for(i in 2:length(comp)){
-                    comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                    #comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                    comp.a = s.exp[s.exp$Compound.y %in% comp[i],]
                     comp.base.drug = s.exp[grep("Drug",s.exp$Plate.ID),]
                     comp.base.drug = comp.base.drug[comp.base.drug$Well.Type.x == "Negative",]
                     mean.drug = mean(comp.base.drug$X..Live.cells)
@@ -870,8 +896,8 @@ shinyApp(
                     #comp.a = rbind(comp.a,comp.null)
                     #mean.comp.a = comp.a %>% group_by(Concentration) %>% summarize(var3.mean = mean(X..live.cells))
                     #list.comp.a[[i]] = as.data.frame(mean.comp.a)[,2]
-                    comp.a$Compound.z = "PMR-116"
-                    comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+                    comp.a$Compound.z = input$drug.name
+                    comp.a$Concentration.z = c(rep(input$drug.con,c(dim(comp.a)[1]-2)/2),rep(0,c(dim(comp.a)[1]-2)/2),input$drug.con,0)
                     gg = data.frame(block_id = 1, drug_col = comp.a$Compound.z, drug_row = comp.a$Compound.y,conc_c = comp.a$Concentration.z, conc_r = comp.a$Concentration.y, response = comp.a$X..Live.cells, conc_r_unit = "uM",conc_c_unit = "uM")
                     gg[is.na(gg)] = 0
                     gg$drug_row <- sub("^$", unique(gg$drug_row)[1], gg$drug_row)
@@ -881,7 +907,8 @@ shinyApp(
                 
                 list.comp.a = list()
                 for(i in 2:length(comp)){
-                    comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                    #comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+                    comp.a = s.exp[s.exp$Compound.y %in% comp[i],]
                     comp.base.drug = s.exp[grep("Drug",s.exp$Plate.ID),]
                     comp.base.drug = comp.base.drug[comp.base.drug$Well.Type.x == "Negative",]
                     mean.drug = mean(comp.base.drug$X..Live.cells)
@@ -904,8 +931,8 @@ shinyApp(
                     #comp.a = rbind(comp.a,comp.null)
                     #mean.comp.a = comp.a %>% group_by(Concentration) %>% summarize(var3.mean = mean(X..live.cells))
                     #list.comp.a[[i]] = as.data.frame(mean.comp.a)[,2]
-                    comp.a$Compound.z = "PMR-116"
-                    comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+                    comp.a$Compound.z = input$drug.name
+                    comp.a$Concentration.z = c(rep(input$drug.con,c(dim(comp.a)[1]-2)/2),rep(0,c(dim(comp.a)[1]-2)/2),input$drug.con,0)
                     comp.a$X..CTFR = (c(c(comp.a[grep("Drug",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1])[-length(c(comp.a[grep("Drug",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1]))],
                                        c(comp.a[grep("Veh",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1])[-length(c(comp.a[grep("Veh",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[2]))],1,1)-1)*100
                     gg = data.frame(block_id = 1, drug_col = comp.a$Compound.z, drug_row = comp.a$Compound.y,conc_c = comp.a$Concentration.z, conc_r = comp.a$Concentration.y, response = comp.a$X..CTFR, conc_r_unit = "uM",conc_c_unit = "uM")
@@ -1024,7 +1051,8 @@ shinyApp(
           if (input$response == "viability"){
             list.comp.a = list()
             for(i in 2:length(comp)){
-              comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+              #comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+              comp.a = s.exp[s.exp$Compound.y %in% comp[i],]
               comp.base.drug = s.exp[grep("Drug",s.exp$Plate.ID),]
               comp.base.drug = comp.base.drug[comp.base.drug$Well.Type.x == "Negative",]
               mean.drug = mean(comp.base.drug$X..Live.cells)
@@ -1043,8 +1071,8 @@ shinyApp(
               #comp.a = rbind(comp.a,comp.null)
               #mean.comp.a = comp.a %>% group_by(Concentration) %>% summarize(var3.mean = mean(X..live.cells))
               #list.comp.a[[i]] = as.data.frame(mean.comp.a)[,2]
-              comp.a$Compound.z = "PMR-116"
-              comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+              comp.a$Compound.z = input$drug.name
+              comp.a$Concentration.z = c(rep(input$drug.con,c(dim(comp.a)[1]-2)/2),rep(0,c(dim(comp.a)[1]-2)/2),input$drug.con,0)
               gg = data.frame(block_id = 1, drug_col = comp.a$Compound.z, drug_row = comp.a$Compound.y,conc_c = comp.a$Concentration.z, conc_r = comp.a$Concentration.y, response = comp.a$X..Live.cells, conc_r_unit = "uM",conc_c_unit = "uM")
               gg[is.na(gg)] = 0
               gg$drug_row <- sub("^$", unique(gg$drug_row)[1], gg$drug_row)
@@ -1054,7 +1082,8 @@ shinyApp(
             
             list.comp.a = list()
             for(i in 2:length(comp)){
-              comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+              #comp.a = s.exp[grep(comp[i],s.exp$Compound.y,fixed = TRUE),]
+              comp.a = s.exp[s.exp$Compound.y %in% comp[i],]
               comp.base.drug = s.exp[grep("Drug",s.exp$Plate.ID),]
               comp.base.drug = comp.base.drug[comp.base.drug$Well.Type.x == "Negative",]
               mean.drug = mean(comp.base.drug$X..Live.cells)
@@ -1077,8 +1106,8 @@ shinyApp(
               #comp.a = rbind(comp.a,comp.null)
               #mean.comp.a = comp.a %>% group_by(Concentration) %>% summarize(var3.mean = mean(X..live.cells))
               #list.comp.a[[i]] = as.data.frame(mean.comp.a)[,2]
-              comp.a$Compound.z = "PMR-116"
-              comp.a$Concentration.z = c(rep(0.4,7),rep(0,7),0.4,0)
+              comp.a$Compound.z = input$drug.name
+              comp.a$Concentration.z = c(rep(input$drug.con,c(dim(comp.a)[1]-2)/2),rep(0,c(dim(comp.a)[1]-2)/2),input$drug.con,0)
               comp.a$X..CTFR = (c(c(comp.a[grep("Drug",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1])[-length(c(comp.a[grep("Drug",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1]))],
                                   c(comp.a[grep("Veh",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[1])[-length(c(comp.a[grep("Veh",comp.a$Plate.ID),]$Median.CellTrace.FR.A..RL1.A..of.Live.cells / comp.a[comp.a$Well.Type.x == "Negative",]$Median.CellTrace.FR.A..RL1.A..of.Live.cells[2]))],1,1)-1)*100
               gg = data.frame(block_id = 1, drug_col = comp.a$Compound.z, drug_row = comp.a$Compound.y,conc_c = comp.a$Concentration.z, conc_r = comp.a$Concentration.y, response = comp.a$X..CTFR, conc_r_unit = "uM",conc_c_unit = "uM")
@@ -1152,6 +1181,7 @@ shinyApp(
             }
           })
           lst.syn.df = as.data.frame(do.call(rbind,all.synergy))
+          #lst.syn.df = lst.syn.df[lst.syn.df$Drug %in% unique(lst.syn.df[rowMeans(lst.syn.df[,c(4:7)]) >= input$threshold,]$Drug),]
         })
         
 # synergy all heatmap
@@ -1165,20 +1195,21 @@ shinyApp(
           max.sum = list()
           for (i in 1:length(unique(lst.syn.df$Drug))){
             sum.drug = lst.syn.df[lst.syn.df$Drug == unique(lst.syn.df$Drug)[i],]
-            max.res = sum.drug[sum.drug$response == max(sum.drug$response),]
+            sum.drug$meanSyn = rowMeans(sum.drug[,c(4:7)])
+            max.res = sum.drug[sum.drug$meanSyn == max(sum.drug$meanSyn),]
             max.sum[[i]] = max.res
           }
           
           max.sum = do.call(rbind,max.sum)
           
           max.sum = max.sum[order(max.sum$ZIP_synergy,decreasing = T),]
+          max.sum = max.sum[!duplicated(max.sum$Drug),]
           
           ht.table = max.sum[,c(4:7)]
           rownames(ht.table) = max.sum$Drug
           
           # add multiple selector drugs for heatmap drugs.
           ht.table = ht.table[rownames(ht.table) %in% input$ht.drugs,]
-          #max.sum = max.sum[max.sum$Drug %in% input$ht.drugs,]
           ht.table
           ####
         })
@@ -1188,13 +1219,15 @@ shinyApp(
           max.sum = list()
           for (i in 1:length(unique(lst.syn.df$Drug))){
             sum.drug = lst.syn.df[lst.syn.df$Drug == unique(lst.syn.df$Drug)[i],]
-            max.res = sum.drug[sum.drug$response == max(sum.drug$response),]
+            sum.drug$meanSyn = rowMeans(sum.drug[,c(4:7)])
+            max.res = sum.drug[sum.drug$meanSyn == max(sum.drug$meanSyn),]
             max.sum[[i]] = max.res
           }
           
           max.sum = do.call(rbind,max.sum)
           
           max.sum = max.sum[order(max.sum$ZIP_synergy,decreasing = T),]
+          max.sum = max.sum[!duplicated(max.sum$Drug),]
           
           ht.table = max.sum[,c(4:7)]
           rownames(ht.table) = max.sum$Drug
@@ -1222,8 +1255,12 @@ shinyApp(
           #rownames(ht.table) = max.sum$Drug
           
           # add multiple selector drugs for heatmap drugs.
-          ht.table = data.ht()[rownames(data.ht()) %in% input$ht.drugs,]
-          max.sum = data.max()[data.max()$Drug %in% input$ht.drugs,]
+          ht.table = data.ht()[rownames(data.ht()) %in% input$ht.drugs & 
+                                 rownames(data.ht()) %in% rownames(data.ht()[rowMeans(data.ht()) >= input$threshold,]),]
+          
+          max.sum = data.max()[data.max()$Drug %in% input$ht.drugs & 
+                                 data.max()$Drug %in% data.max()[rowMeans(data.max()[,c(4:7)]) >= input$threshold,]$Drug,]
+          
           
           #ht.table = ht.table[rownames(ht.table) %in% input$ht.drugs,]
           #max.sum = max.sum[max.sum$Drug %in% input$ht.drugs,]
