@@ -14,21 +14,22 @@ Upload a CSV file with the following columns for the plate reference file.
 * Well Column
 * Well Type
 * Compound
-* Concentration
+* Concentration (uM)
 
 Input file format (csv) whith the following columns:
 
-* Plate ID
+* Plate ID (add _Drug or _Veh at the end of your Plate ID)
 * Well ID
-* Well Row
-* Well Column
+* Well Type
 * Compound
-* Concentration
-* Count of beads
+* Concentration (uM)
+* Count of Counting beads
+* Count of Live cells
+* Count of Dead cells
 * % Live cells
 * % Dead cells
-* absolute count of live cells per well
-* absoute count of dead cells per well
+* Number of live cells per well
+* Number of dead cells per well
 * Median CellTrace FR-A (RL1-A) of Live cells
 
 ## IC50 calculation:
@@ -79,6 +80,10 @@ User can choose between two type of observations on the synergy response:
 Summary table with the Synergy scores by every drug concentration.
 
 Summary heatmap with the Synergy scores by every drug concentration (you can chose how many drugs do you want to plot on the heatmap).
+
+The concentration and synergy scores ploted by drug is the one that have the highest mean score from all synergy scores by concentration.
+
+A threshold of the synergy score can be applied using the slider bar.
 
 ## Contact:
 
